@@ -1,33 +1,41 @@
 name: Build mods
-
+ 
 on:
   push:
   workflow_dispatch:
-
+ 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
+ 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
-
+ 
       - name: Build all three mods
         run: |
           set -e
+          # Find the mod folders wherever they were uploaded (repo root or a subfolder).
+          FOUND=$(find . -path ./.git -prune -o -type f -path '*/deathkick/build.gradle' -print | head -n 1)
+          if [ -z "$FOUND" ]; then
+            echo "Could not find deathkick/build.gradle. This is what's in the repository:"
+            find . -path ./.git -prune -o -print | head -n 100
+            exit 1
+          fi
+          BASE=$(dirname "$(dirname "$FOUND")")
+          echo "Mods found in: $BASE"
+          mkdir -p "$GITHUB_WORKSPACE/jars"
           for mod in deathkick nickskins smptools; do
             echo "::group::Building $mod"
-            (cd "$mod" && chmod +x gradlew && ./gradlew build --no-daemon --stacktrace)
+            (cd "$BASE/$mod" && chmod +x gradlew && ./gradlew build --no-daemon --stacktrace)
+            cp "$BASE/$mod"/build/libs/*.jar "$GITHUB_WORKSPACE/jars/"
             echo "::endgroup::"
           done
-          mkdir -p jars
-          cp */build/libs/*.jar jars/
-
+ 
       - uses: actions/upload-artifact@v4
         with:
           name: mods
           path: jars/*.jar
-
