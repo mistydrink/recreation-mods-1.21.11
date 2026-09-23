@@ -1,0 +1,20 @@
+{
+	"schemaVersion": 1,
+	"id": "nickskins",
+	"version": "${version}",
+	"name": "NickSkins",
+	"description": "Server-side mass nicknames (above heads, tab list and chat) and random skins from a signed skin pool.",
+	"authors": ["You"],
+	"license": "CC0-1.0",
+	"environment": "*",
+	"entrypoints": {
+		"main": ["net.servertools.nickskins.NickSkins"]
+	},
+	"mixins": ["nickskins.mixins.json"],
+	"depends": {
+		"fabricloader": ">=0.16.0",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

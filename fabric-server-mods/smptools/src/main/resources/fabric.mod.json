@@ -1,0 +1,19 @@
+{
+	"schemaVersion": 1,
+	"id": "smptools",
+	"version": "${version}",
+	"name": "SMP Tools",
+	"description": "/smp rules that remove villagers, shulkers, End-ship elytras and ominous vaults to keep those items rare.",
+	"authors": ["You"],
+	"license": "CC0-1.0",
+	"environment": "*",
+	"entrypoints": {
+		"main": ["net.servertools.smptools.SmpTools"]
+	},
+	"depends": {
+		"fabricloader": ">=0.16.0",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
