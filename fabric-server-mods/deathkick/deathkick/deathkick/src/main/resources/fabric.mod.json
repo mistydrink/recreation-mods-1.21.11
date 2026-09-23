@@ -1,0 +1,19 @@
+{
+	"schemaVersion": 1,
+	"id": "deathkick",
+	"version": "${version}",
+	"name": "DeathKick",
+	"description": "Kicks players when they die (with a per-player bypass list) and hides join/leave messages.",
+	"authors": ["You"],
+	"license": "CC0-1.0",
+	"environment": "*",
+	"entrypoints": {
+		"main": ["net.servertools.deathkick.DeathKick"]
+	},
+	"depends": {
+		"fabricloader": ">=0.16.0",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
