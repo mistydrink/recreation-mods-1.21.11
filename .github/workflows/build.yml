@@ -15,6 +15,19 @@ jobs:
           distribution: temurin
           java-version: 21
  
+      - name: Pin latest Yarn mappings
+        run: |
+          # gradle.properties may say e.g. yarn_mappings=1.21.11+build.+ ; Gradle can't resolve that,
+          # so look up the newest build for that Minecraft version and write it in.
+          for f in $(find . -path ./.git -prune -o -name gradle.properties -print); do
+            if grep -q '^yarn_mappings=.*+build\.+$' "$f"; then
+              mc=$(grep '^minecraft_version=' "$f" | cut -d= -f2 | tr -d '\r')
+              v=$(curl -sf "https://meta.fabricmc.net/v2/versions/yarn/$mc" | python3 -c 'import sys,json; print(json.load(sys.stdin)[0]["version"])')
+              sed -i "s/^yarn_mappings=.*/yarn_mappings=$v/" "$f"
+              echo "$f: yarn $v"
+            fi
+          done
+
       - name: Build all three mods
         run: |
           set -e
