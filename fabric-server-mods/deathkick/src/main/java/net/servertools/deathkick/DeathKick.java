@@ -47,7 +47,7 @@ public class DeathKick implements ModInitializer {
 		PendingDeath(int ticksLeft, Text kickMessage, ServerPlayerEntity player) {
 			this.ticksLeft = ticksLeft;
 			this.kickMessage = kickMessage;
-			this.world = player.getServerWorld();
+			this.world = player.getCommandSource().getWorld();
 			this.x = player.getX();
 			this.y = player.getY();
 			this.z = player.getZ();
