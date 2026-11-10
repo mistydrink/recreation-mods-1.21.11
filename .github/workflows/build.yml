@@ -2,11 +2,14 @@ name: Build mods
  
 on:
   push:
+    branches-ignore: [jars]
   workflow_dispatch:
  
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
  
@@ -52,3 +55,15 @@ jobs:
         with:
           name: mods
           path: jars/*.jar
+
+      - name: Save jars to the "jars" branch
+        run: |
+          # The jars branch only ever holds the latest build's jars, so they can be grabbed without
+          # downloading the Actions artifact. [skip ci] stops this push from starting another build.
+          cd "$GITHUB_WORKSPACE/jars"
+          git init -q
+          git checkout -q -b jars
+          git add *.jar
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Jars from ${GITHUB_REF_NAME} ${GITHUB_SHA::7} [skip ci]"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" jars
