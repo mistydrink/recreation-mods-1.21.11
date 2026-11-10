@@ -4,7 +4,7 @@ Three separate **server-side** mods. Players don't need to install anything; van
 
 | Mod | What it does |
 |---|---|
-| `deathkick` | Kicks players when they die (with a per-player bypass list) and hides join/leave messages |
+| `deathkick` | Puts players into spectator where they died (or kicks them), with a per-player bypass list, and hides join/leave messages |
 | `nickskins` | Mass nicknames (above heads, tab list, chat), saved groups, nickname reset, random skins from a pool |
 | `smptools` | `/smp` rules that remove villagers, shulkers, End-ship elytras and ominous vaults |
 
@@ -30,9 +30,12 @@ networking code, so they need version bumps and a few fixes.
 
 | Command | Effect |
 |---|---|
-| `/deathkick on` / `off` | Turn kick-on-death on or off |
+| `/deathkick on` / `off` | Turn the mod's death handling on or off |
+| `/deathkick mode spectator` / `kick` | Dying makes you a spectator where you died (default), or kicks you |
+| `/deathkick joinmessages on` / `off` | Show or hide join messages |
+| `/deathkick leavemessages on` / `off` | Show or hide leave messages |
 | `/deathkick status` | Show current settings |
-| `/deathkick bypass add <players>` | Never kick these players (names work for offline players too) |
+| `/deathkick bypass add <name>` | These players respawn normally when they die (names work for offline players too) |
 | `/deathkick bypass remove <name>` | Take someone off the bypass list |
 | `/deathkick bypass list` | Show the bypass list |
 | `/deathkick reload` | Reload `config/deathkick.json` |
@@ -43,8 +46,10 @@ networking code, so they need version bumps and a few fixes.
 {
   "enabled": true,
   "hideJoinMessages": true,
-  "hideLeaveMessages": true,
+  "hideLeaveMessages": false,
+  "deathAction": "spectator",
   "kickDelayTicks": 20,
+  "announceDeathAsLeave": true,
   "kickMessage": "&cYou died!&r\n\n&7{death}",
   "bypass": {}
 }
@@ -52,7 +57,9 @@ networking code, so they need version bumps and a few fixes.
 
 - `{death}` is replaced with the death message.
 - `&` color codes work.
-- `kickDelayTicks: 20` is one second, so the death message shows in chat before the kick.
+- `kickDelayTicks: 20` is one second, so the death message shows in chat before the kick or the switch to spectator.
+- In spectator mode the player is respawned automatically, set to spectator and put back where they died. With `announceDeathAsLeave`, chat also shows "<name> left the game".
+- To bring a spectator back, use `/gamemode survival <name>`.
 
 When a kicked player rejoins, they land on the respawn screen as normal.
 

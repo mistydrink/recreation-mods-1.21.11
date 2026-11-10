@@ -1,17 +1,14 @@
 package net.servertools.deathkick;
 
-import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.command.CommandSource;
-import net.minecraft.command.argument.GameProfileArgumentType;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 
-import java.util.Collection;
 import java.util.Map;
 
 import static net.minecraft.server.command.CommandManager.argument;
@@ -19,7 +16,9 @@ import static net.minecraft.server.command.CommandManager.literal;
 
 /**
  * /deathkick on|off|status|reload
- * /deathkick bypass add <players>      (online or offline, by name)
+ * /deathkick mode spectator|kick
+ * /deathkick joinmessages|leavemessages on|off
+ * /deathkick bypass add <name>         (online or offline, no lookup needed)
  * /deathkick bypass remove <name>
  * /deathkick bypass list
  */
@@ -37,9 +36,19 @@ final class DeathKickCommands {
 					ctx.getSource().sendFeedback(() -> Text.literal("DeathKick config reloaded."), true);
 					return 1;
 				}))
+				.then(literal("mode")
+						.then(literal("spectator").executes(ctx -> setMode(ctx, "spectator")))
+						.then(literal("kick").executes(ctx -> setMode(ctx, "kick"))))
+				.then(literal("joinmessages")
+						.then(literal("on").executes(ctx -> setMessages(ctx, true, true)))
+						.then(literal("off").executes(ctx -> setMessages(ctx, true, false))))
+				.then(literal("leavemessages")
+						.then(literal("on").executes(ctx -> setMessages(ctx, false, true)))
+						.then(literal("off").executes(ctx -> setMessages(ctx, false, false))))
 				.then(literal("bypass")
 						.then(literal("add")
-								.then(argument("players", GameProfileArgumentType.gameProfile())
+								.then(argument("player", StringArgumentType.word())
+										.suggests((ctx, builder) -> CommandSource.suggestMatching(ctx.getSource().getServer().getPlayerNames(), builder))
 										.executes(DeathKickCommands::bypassAdd)))
 						.then(literal("remove")
 								.then(argument("name", StringArgumentType.word())
@@ -52,14 +61,24 @@ final class DeathKickCommands {
 		DeathKickConfig config = DeathKick.config();
 		config.enabled = enabled;
 		config.save();
-		ctx.getSource().sendFeedback(() -> Text.literal("Kick on death is now " + (enabled ? "ON" : "OFF") + "."), true);
+		ctx.getSource().sendFeedback(() -> Text.literal("DeathKick is now " + (enabled ? "ON" : "OFF") + "."), true);
+		return 1;
+	}
+
+	private static int setMode(CommandContext<ServerCommandSource> ctx, String mode) {
+		DeathKickConfig config = DeathKick.config();
+		config.deathAction = mode;
+		config.save();
+		ctx.getSource().sendFeedback(() -> Text.literal("Players who die will now " + ("kick".equals(mode)
+				? "be kicked." : "become spectators where they died.")), true);
 		return 1;
 	}
 
 	private static int status(CommandContext<ServerCommandSource> ctx) {
 		DeathKickConfig c = DeathKick.config();
 		ctx.getSource().sendFeedback(() -> Text.literal(
-				"Kick on death: " + (c.enabled ? "ON" : "OFF")
+				"DeathKick: " + (c.enabled ? "ON" : "OFF")
+						+ " | on death: " + (c.spectatorMode() ? "spectator" : "kick")
 						+ " | delay: " + c.kickDelayTicks + " ticks"
 						+ " | hide joins: " + c.hideJoinMessages
 						+ " | hide leaves: " + c.hideLeaveMessages
@@ -67,17 +86,35 @@ final class DeathKickCommands {
 		return 1;
 	}
 
-	private static int bypassAdd(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
-		Collection<GameProfile> profiles = GameProfileArgumentType.getProfileArgument(ctx, "players");
+	/**
+	 * Works for anyone: online players are stored by UUID; names of players who aren't online
+	 * (or have never joined) are stored by name, so no Mojang lookup is needed.
+	 */
+	private static int bypassAdd(CommandContext<ServerCommandSource> ctx) {
+		String name = StringArgumentType.getString(ctx, "player");
 		DeathKickConfig config = DeathKick.config();
-		int added = 0;
-		for (GameProfile profile : profiles) {
-			if (config.bypass.put(profile.getId().toString(), profile.getName()) == null) added++;
+		ServerPlayerEntity online = ctx.getSource().getServer().getPlayerManager().getPlayer(name);
+
+		String key = online != null ? online.getUuidAsString() : DeathKick.nameKey(name);
+		String display = online != null ? online.getGameProfile().name() : name;
+		if (config.bypass.containsKey(key)) {
+			ctx.getSource().sendError(Text.literal(display + " is already on the bypass list."));
+			return 0;
 		}
+		config.bypass.put(key, display);
 		config.save();
-		int count = added;
-		ctx.getSource().sendFeedback(() -> Text.literal("Added " + count + " player(s) to the death-kick bypass list."), true);
-		return count;
+		ctx.getSource().sendFeedback(() -> Text.literal("Added " + display + " to the bypass list (they respawn normally when they die)."), true);
+		return 1;
+	}
+
+	private static int setMessages(CommandContext<ServerCommandSource> ctx, boolean join, boolean show) {
+		DeathKickConfig config = DeathKick.config();
+		if (join) config.hideJoinMessages = !show;
+		else config.hideLeaveMessages = !show;
+		config.save();
+		ctx.getSource().sendFeedback(() -> Text.literal((join ? "Join" : "Leave") + " messages are now "
+				+ (show ? "shown" : "hidden") + "."), true);
+		return 1;
 	}
 
 	private static int bypassRemove(CommandContext<ServerCommandSource> ctx) {

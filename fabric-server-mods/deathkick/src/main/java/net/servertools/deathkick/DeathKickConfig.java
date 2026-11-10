@@ -19,16 +19,26 @@ public class DeathKickConfig {
 
 	public boolean enabled = true;
 	public boolean hideJoinMessages = true;
-	public boolean hideLeaveMessages = true;
+	public boolean hideLeaveMessages = false;
 
-	/** Ticks to wait after death before kicking (20 ticks = 1 second). 0 = same tick. */
+	/** What happens when a player dies: "spectator" (respawn them as a spectator where they died) or "kick". */
+	public String deathAction = "spectator";
+
+	/** Ticks to wait after death before kicking or switching to spectator (20 ticks = 1 second). 0 = same tick. */
 	public int kickDelayTicks = 20;
 
-	/** Shown on the disconnect screen. Supports &-color codes and the {death} placeholder. */
+	/** In spectator mode, show "<name> left the game" when someone dies, as if they had left. */
+	public boolean announceDeathAsLeave = true;
+
+	/** Kick mode only: shown on the disconnect screen. Supports &-color codes and the {death} placeholder. */
 	public String kickMessage = "&cYou died!&r\n\n&7{death}";
 
-	/** UUID -> last known name. Players here are never kicked for dying. */
+	/** Key is a UUID, or "name:<lowercase name>" for players added before they ever joined. Value is the display name. */
 	public Map<String, String> bypass = new LinkedHashMap<>();
+
+	public boolean spectatorMode() {
+		return !"kick".equalsIgnoreCase(deathAction);
+	}
 
 	public static DeathKickConfig load() {
 		if (Files.exists(PATH)) {
